@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寶可夢配對碰</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        
+        html,
+        body {
+            height: 100%;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: url(./img/背景.jpg);
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .container {
+            width: 1200px;
+            margin: auto;
+        }
+        
+        .card {
+            box-sizing: border-box;
+            width: 150px;
+            height: 220px;
+            position: relative;
+            transform-style: preserve-3d;
+            float: left;
+            margin: 2px 0;
+            transition: transform 1s;
+        }
+        
+        .card-front {
+            width: 100%;
+            height: 100%;
+            background-image: url(./img/1-1.jpg);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            position: absolute;
+            transform: rotateY(180deg);
+        }
+        
+        .card-back {
+            width: 100%;
+            height: 100%;
+            background-image: url(./img/back.jpg);
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            position: absolute;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        
+        .card-open {
+            transform: rotateY(180deg);
+        }
+        
+        .text {
+            color: white;
+            font-weight: bolder;
+            font-size: 3rem;
+            position: absolute;
+            top: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-shadow: 0 0 20px rgb(28, 2, 70), 0 10px 30px rgb(67, 8, 161)
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="text">
+            <span class="text-now"></span>
+        </div>
+        <div id="game"></div>
+
+        
+    </div>
+
+    <script src="./jquery-3.6.0.min.js"></script>
+    <!-- sweet alert -->
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // 遊戲大綱:20張寶可夢圖片，10張進化前圖片，10張進化後圖片，找到進化前後圖片，對應成功即消失，聲音出來介紹寶該寶可夢。20張全部對應成功後即成功破解遊戲。
+
+        //聲音
+        const audio = new Audio()
+
+        //產出第一組10張牌(進化前)
+        for (let i = 0; i < 12; i++) {
+            $("#game").append(`
+            <div class="card">
+            <div class="card-front"></div>
+            <div class="card-back"></div>
+            </div>`)
+        }
+        //產出第二組10張對應的牌(進化後)
+        for (let i = 12; i < 24; i++) {
+            $("#game").append(`
+            <div class="card">
+            <div class="card-front"></div>
+            <div class="card-back"></div>
+            </div>`)
+        }
+
+
+        // 決定第一組數字並打散
+        for (let i = 0; i < 12; i++) {
+            const num = i % 12 + 1
+            $(".card").eq(i).find(".card-front").css("background-image", `url(./img/${num}-1.jpg)`)
+                // 自定義儲存屬性(data-?)
+            $(".card").eq(i).attr("data-card", num)
+
+            // 打散
+            const target = Math.round(Math.random() * 11)
+            $(".card").eq(target).insertAfter($(".card").eq(i))
+        }
+
+        // 決定第二組數字
+        for (let x = 12; x < 24; x++) {
+            const num = x % 12 + 1
+            $('.card').eq(x).addClass('super-card');
+            $(".card").eq(x).find(".card-front").css("background-image", `url(./img/${num}-2.jpg)`)
+                // 自定義儲存屬性(data-?)
+            $(".card").eq(x).attr("data-card", num)
+
+            // 打散
+            const target = Math.round(Math.random() * 11)
+            $(".card").eq(target).insertAfter($(".card").eq(x))
+        }
+
+        // 翻牌
+        $("#game").on("click", ".card", function() {
+            // 如果還沒翻開兩張，或是翻開的牌還沒被標註
+            if ($(".card-open").length < 2 && !$(this).hasClass("card-open")) {
+                $(this).addClass("card-open")
+            }
+
+            // 翻牌顯示文字
+            let textNow = ['皮卡丘', '小火龍', '妙蛙種子', '傑尼龜', '波波', '胖丁', '呆呆獸', '海星星', '鯉魚王', '可達鴨', '波克比', '臭臭花', '雷丘', '噴火龍', '妙蛙花', '水箭龜', '大比鳥', '胖可丁', '呆殼獸', '寶石海星', '暴鯉龍', '哥達鴨', '波克基斯', '霸王花']
+                // 如果是進化版的卡
+            if ($(this).hasClass('super-card')) {
+                // 就顯示textNow[12-23]
+                $('.text-now').text(textNow[`${$(this).attr("data-card") - 1 + 12 }`])
+            } else {
+                // 如果不是進化版的卡就顯示textNow[0-11]
+                $(".text-now").text(textNow[`${$(this).attr("data-card")-1}`])
+            }
+
+
+            // 如果已經翻開兩張
+            if ($(".card-open").length === 2) {
+                // 判斷翻開的兩張是否一樣
+                // 如果一樣
+                if ($(".card-open").eq(0).attr("data-card") === $(".card-open").eq(1).attr("data-card")) {
+                    // 播放介紹
+                    audio.src = './audio/correctAudio.mp3'
+                    audio.play()
+
+                    // 標註card-ok
+                    $(".card-open").addClass("card-ok")
+                        // 將正面淡出
+                    $(".card-open .card-front").fadeTo(3000, 0)
+
+
+                }
+
+                // 如果不一樣，或是一樣也要翻回來
+                setTimeout(() => {
+                    // 如果.card-open透明度不等於1，就將整張透明度調成0，整張都會消失
+                    $(".card-open").each(function() {
+                        if ($(this).find(".card-front").css("opacity") != 1) {
+                            $(this).css("opacity", 0)
+                        }
+                    })
+
+                    $(".card-open").removeClass("card-open")
+                        // 配對完成
+                    if ($(".card-ok").length === 24) {
+                        Swal.fire({
+                            icon: "success",
+                            title: "恭喜成為寶可夢大師!"
+                        })
+                    }
+                }, 1000)
+            }
+        })
+    </script>
+</body>
+
+</html>
